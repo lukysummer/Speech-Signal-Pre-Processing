@@ -1,15 +1,20 @@
 import numpy as np
 from scipy.io import wavfile
 
-########################## 1. Read in the wave file ###########################
+########################## 1. Read in the audio file ##########################
+
 sample_rate, signal = wavfile.read('sample.wav')
 print('Sample rate: {} sammples per second'.format(sample_rate))
 
-# 2. Pre-emphasis (normalizing signal amplitudes)
+
+################ 2. Pre-emphasis (Normalize signal amplitudes) ################
+
 emphasized_signal = np.append(signal[0], signal[1:] - 0.97*signal[:-1])
 signal_length = len(emphasized_signal)
 
-# 3. Framing (splitting the signal into short frames)
+
+############### 3. Framing (Split the signal into short frames) ###############
+
 # we want to set frame length = 25 ms & stride = 10 ms
 frame_length = int(round(0.025 * sample_rate))  # length in number of samples
 stride = int(round(0.01 * sample_rate))
@@ -24,10 +29,12 @@ frames = emphasized_signal[indices]  # shape: (n_frames, frame_length)
 
 
 ################### 4. Apply the window (hamming window) ######################
+
 frames *= np.hamming(frame_length)
 
 
 ########## 5. Perform Fast Fourier Transform & Obtain Power Spectrum ##########
+
 nfft = 512  # performing 512-point Discrete Fourier Transform
 # magnitudes of FFT:
 fft_magnitudes = np.abs(np.fft.rfft(frames, nfft))
@@ -35,6 +42,7 @@ power_spectrum = (fft_magnitudes**2) / nfft
 
 
 ############### 6. Apply Mel Filter Bank to the Power Spectrum ################
+
 n_filters = 40  # number of filters in the mel filter bank
 min_mel_freq = 0
 max_mel_freq = 2595*np.log10(1 + (sample_rate/2)/700)
@@ -56,7 +64,10 @@ filter_outpus = np.where(filter_outputs == 0,
                          filter_outputs)   # adjustment for numerical stability
 filter_outputs_db = 20 * np.log10(filter_outputs)
 
-## 7. Extract 12 MFCC features by performing Discrete Cosine Transform (dct) ##
+
+######################## 7. Extract 12 MFCC features ##########################
+############### by performing Discrete Cosine Transform (dct) #################
+
 from scipy.fftpack import dct
 
 n_mfcc_features = 12
@@ -67,6 +78,7 @@ mfcc = dct(filter_outputs_db,
 
 
 ############################ 8. Mean Normalization ############################
+
 mfcc -= np.mean(mfcc, axis = 0) + 1e-8
 print()
 print("Shape of MFCC matrix: ", mfcc.shape)  # (n_frames, 12)
